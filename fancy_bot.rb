@@ -127,7 +127,7 @@ bot = Cinch::Bot.new do
     m.reply "This if FancyBot v0.1 running @ irc.fancy-lang.org"
   end
 
-  on :message, /^!eval (.+)$/ do |m, cmd|
+  on :message, /^! (.+)$/ do |m, cmd|
     begin
       Timeout::timeout(5) do
         IO.popen("#{FANCY_CMD} -e \"File = nil; Directory = nil; System = nil; #{cmd.gsub(/\"/, "\\\"")}\"", "r") do |o|
