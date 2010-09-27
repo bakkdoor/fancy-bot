@@ -1,6 +1,7 @@
 require 'open-uri'
 require 'cinch'
 require "date"
+require "timeout"
 
 FANCY_CMD = "#{ARGV[0]}/bin/fancy -I #{ARGV[0]}"
 
@@ -67,7 +68,7 @@ end
 bot = Cinch::Bot.new do
   configure do |c|
     c.server   = "irc.freenode.org"
-    c.channels = ["#fancy"]
+    c.channels = ["#fancy_bot"]
     c.nick = "fancy_bot"
     c.plugins.plugins = [FancyLogger]
 
@@ -127,8 +128,19 @@ bot = Cinch::Bot.new do
   end
 
   on :message, /^!eval (.+)$/ do |m, cmd|
-    IO.popen("#{FANCY_CMD} -e \"File = nil; Directory = nil; System = nil; #{cmd.gsub(/\"/, "\\\"")}\"", "r") do |o|
-      m.reply "=> #{o.readlines.map(&:chomp).join("; ")}"
+    begin
+      Timeout::timeout(5) do
+        IO.popen("#{FANCY_CMD} -e \"File = nil; Directory = nil; System = nil; #{cmd.gsub(/\"/, "\\\"")}\"", "r") do |o|
+          lines = o.readlines
+          if lines.size <= 5
+            m.reply "=> #{lines.map(&:chomp).join("; ")}"
+          else
+            m.reply "=> #{lines[0..4].map(&:chomp).join("; ")} [...]"
+          end
+        end
+      end
+    rescue Timeout::Error
+      m.reply "=> Your computation took to long! Timeout is set to 5 seconds."
     end
   end
 end
