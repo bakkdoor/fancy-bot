@@ -3,6 +3,10 @@ require 'open-uri'
 require 'cinch'
 require "date"
 
+class Cinch::Bot
+  attr_reader :plugins # hack to allow access to plugins from outside
+end
+
 class FancyLogger
   include Cinch::Plugin
 
@@ -16,6 +20,20 @@ class FancyLogger
     end
   end
 
+  def logfile
+    "#fancy_#{Date.today}.log"
+  end
+
+  def log_messages
+    if @logged_messages
+      File.open(logfile, "a") do |f|
+        @logged_messages.each do |msg|
+          log_message f, msg
+        end
+      end
+    end
+  end
+
   def listen(m)
     @last_logtime ||= Time.now
     @logged_messages ||= []
@@ -23,17 +41,15 @@ class FancyLogger
 
     # every 60 seconds
     if (Time.now - @last_logtime) > 60
-      logfile = "#fancy_#{Date.today}.log"
       $stderr.puts "Writing #{@logged_messages.size} messages to #{logfile}."
-
-      File.open(logfile, "a") do |f|
-        @logged_messages.each do |msg|
-          log_message f, msg
-        end
-      end
+      log_messages
       @last_logtime = Time.now
       @logged_messages.clear
     end
+  end
+
+  def shutdown
+    log_messages
   end
 end
 
@@ -112,6 +128,9 @@ end
 
 trap("INT") do
   puts "Bot is quitting"
+  bot.plugins.each do |p|
+    p.shutdown
+  end
   exit
 end
 
