@@ -145,12 +145,20 @@ bot = Cinch::Bot.new do
   end
 end
 
-trap("INT") do
+def bot_shutdown
   puts "Bot is quitting"
   bot.plugins.each do |p|
     p.shutdown
   end
   exit
+end
+
+trap("INT") do
+  bot_shutdown
+end
+
+trap("KILL") do
+  bot_shutdown
 end
 
 bot.start
