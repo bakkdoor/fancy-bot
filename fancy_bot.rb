@@ -68,7 +68,7 @@ end
 bot = Cinch::Bot.new do
   configure do |c|
     c.server   = "irc.freenode.org"
-    c.channels = ["#fancy_bot"]
+    c.channels = ["#fancy"]
     c.nick = "fancy_bot"
     c.plugins.plugins = [FancyLogger]
 
