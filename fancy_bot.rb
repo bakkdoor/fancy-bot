@@ -1,7 +1,8 @@
-
 require 'open-uri'
 require 'cinch'
 require "date"
+
+FANCY_CMD = "#{ARGV[0]}/bin/fancy -I #{ARGV[0]}"
 
 class Cinch::Bot
   attr_reader :plugins # hack to allow access to plugins from outside
@@ -123,6 +124,12 @@ bot = Cinch::Bot.new do
 
   on :message, "!info" do |m|
     m.reply "This if FancyBot v0.1 running @ irc.fancy-lang.org"
+  end
+
+  on :message, /^!eval (.+)$/ do |m, cmd|
+    IO.popen("#{FANCY_CMD} -e \"File = nil; Directory = nil; System = nil; #{cmd.gsub(/\"/, "\\\"")}\"", "r") do |o|
+      m.reply "=> #{o.readlines.map(&:chomp).join("; ")}"
+    end
   end
 end
 
