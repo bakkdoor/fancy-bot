@@ -2,6 +2,7 @@ require 'open-uri'
 require 'cinch'
 require "date"
 require "timeout"
+require "open3"
 
 FANCY_DIR = ARGV[0]
 FANCY_CMD = "#{FANCY_DIR}/bin/fancy -I #{FANCY_DIR}"
@@ -83,6 +84,71 @@ bot = Cinch::Bot.new do
       url == "Error" ? nil : url
     rescue OpenURI::HTTPError
       nil
+    end
+
+    # fetch latest revision from github
+    def fetch_latest_revision(m)
+      Open3.popen3("cd #{FANCY_DIR} && git pull origin master") do |stdin, stdout, stderr|
+        err_lines = stderr.readlines
+        if err_lines.size > 0
+          # only print error lines if we're not dealing with an
+          # already-up-to-date-message.
+          unless err_lines.all?{|l| l !~ /Already up-to-date./}
+            m.reply "Got error while trying to update from repository:"
+            err_lines.each do |l|
+              m.reply l.chomp
+            end
+            m.reply "Won't/Can't build or run tests."
+            return false # done since error
+          end
+        end
+      end
+      return true
+    end
+
+    def send_build_errors(m, errors)
+      errors.each do |l|
+        unless l =~ /make(.+)?:/
+          m.reply l.chomp
+        end
+      end
+    end
+
+    # try to build fancy source
+    def try_build(m)
+      Open3.popen3("cd #{FANCY_DIR} && make") do |stdin, stdout, stderr|
+        err_lines = stderr.readlines
+        if err_lines.size > 0
+          m.reply "Got build errors:"
+          if err_lines.size > 5
+            send_build_errors m, err_lines[0..4]
+            m.reply "[...] (#{err_lines.size - 5} more error lines were omitted)"
+          else
+            send_build_errors m, err_lines
+          end
+          return false # done since error
+        end
+      end
+      return true
+    end
+
+    # try to run FancySpecs
+    def run_tests(m)
+      IO.popen("cd #{FANCY_DIR} && make test", "r") do |o|
+        lines = o.readlines
+        failed = lines.select{|l| l =~ /FAILED:/}
+        failed.each do |failed|
+          m.reply failed.chomp
+        end
+        m.reply "=> #{failed.size} failed tests!"
+      end
+    end
+
+    def do_update_build_test(m)
+      m.reply "Getting latest changes & trying to run tests."
+      return unless fetch_latest_revision m
+      return unless try_build m
+      run_tests m
     end
   end
 
@@ -166,16 +232,7 @@ bot = Cinch::Bot.new do
 
   on :message, /^fancy:/ do |m|
     if m.user.nick == "fancy_gh"
-      m.reply "Getting latest changes & trying to run tests."
-      system("cd #{FANCY_DIR} && git pull && make")
-      IO.popen("cd #{FANCY_DIR} && make test", "r") do |o|
-        lines = o.readlines
-        failed = lines.select{|l| l =~ /FAILED:/}
-        failed.each do |failed|
-          m.reply failed.chomp
-        end
-        m.reply "=> #{failed.size} failed tests!"
-      end
+      do_update_build_test m
     end
   end
 end
