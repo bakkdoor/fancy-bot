@@ -6,6 +6,7 @@ require "open3"
 
 FANCY_DIR = ARGV[0]
 FANCY_CMD = "#{FANCY_DIR}/bin/fancy -I #{FANCY_DIR}"
+LOGDIR = ARGV[1] ? ARGV[1] : "."
 
 class Cinch::Bot
   attr_reader :plugins # hack to allow access to plugins from outside
@@ -25,7 +26,7 @@ class FancyLogger
   end
 
   def logfile
-    "#fancy_#{Date.today}.log"
+    "#{LOGDIR}/#fancy_#{Date.today}.log"
   end
 
   def log_messages
