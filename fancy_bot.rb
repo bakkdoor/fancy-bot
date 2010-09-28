@@ -3,7 +3,8 @@ require 'cinch'
 require "date"
 require "timeout"
 
-FANCY_CMD = "#{ARGV[0]}/bin/fancy -I #{ARGV[0]}"
+FANCY_DIR = ARGV[0]
+FANCY_CMD = "#{FANCY_DIR}/bin/fancy -I #{FANCY_DIR}"
 
 class Cinch::Bot
   attr_reader :plugins # hack to allow access to plugins from outside
@@ -160,6 +161,21 @@ bot = Cinch::Bot.new do
       end
     rescue Timeout::Error
       m.reply "=> Your computation took to long! Timeout is set to 5 seconds."
+    end
+  end
+
+  on :message, /^fancy:/ do |m|
+    if m.user.nick == "fancy_gh"
+      m.reply "Getting latest changes & trying to run tests."
+      system("cd #{FANCY_DIR} && git pull && make")
+      IO.popen("cd #{FANCY_DIR} && make test", "r") do |o|
+        lines = o.readlines
+        failed = lines.select{|l| l =~ /FAILED:/}
+        failed.each do |failed|
+          m.reply failed.chomp
+        end
+        m.reply "=> #{failed.size} failed tests!"
+      end
     end
   end
 end
