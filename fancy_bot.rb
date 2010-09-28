@@ -109,7 +109,8 @@ bot = Cinch::Bot.new do
 
     def send_build_errors(m, errors)
       errors.each do |l|
-        unless l =~ /make(.+)?:/
+        # ignore warnings and make output lines
+        if l !~ /make(.+)?:/ && l !~ /warning|warnung/i
           m.reply l.chomp
         end
       end
