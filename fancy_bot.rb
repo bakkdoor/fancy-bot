@@ -123,8 +123,27 @@ bot = Cinch::Bot.new do
     m.reply "I'm running since #{@start_time}, which is #{Time.at(Time.now - @start_time).gmtime.strftime('%R:%S')}"
   end
 
-  on :message, "!info" do |m|
-    m.reply "This if FancyBot v0.1 running @ irc.fancy-lang.org"
+  on :message, /^!(info|help) (.+)$/ do |m, foo, command_name|
+    case command_name
+    when "!seen"
+      m.reply "!seen <nickname> : Displays information on when <nickname> was last seen."
+    when "!uptime"
+      m.reply "!uptime : Displays uptime information for FancyBot."
+    when "!shorten"
+      m.reply "!shorten <url> [<urls>] : Displays a shorted version of any given amount of urls (using tinyurl.com)."
+    when /!(info|help)/
+      m.reply "!info/!help [<command>]: Displays help text for <command>. If <command> is ommitted, displays general help text."
+    when "!"
+      m.reply "! <code> : Evaluates the <code> given (expects it to be Fancy code) and displays any output from evaluation."
+      m.reply "! <code> : Maximum timeout for any computation is 5 seconds and only up to 5 lines will be displayed here (seperated by ';' instead of a newline)."
+    else
+      m.reply "Unknown command: #{command_name}."
+    end
+  end
+
+  on :message, /^!(info|help)$/ do |m|
+    m.reply "This is FancyBot v0.1 running @ irc.fancy-lang.org"
+    m.reply "Possible commands are: !seen <nick>, !uptime, !shorten <url> [<urls>], !info, !help, ! <code>"
   end
 
   on :message, /^! (.+)$/ do |m, cmd|
