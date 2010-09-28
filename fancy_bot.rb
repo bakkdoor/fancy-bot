@@ -32,6 +32,7 @@ class FancyLogger
         @logged_messages.each do |msg|
           log_message f, msg
         end
+        @logged_messages.clear
       end
     end
   end
@@ -46,7 +47,6 @@ class FancyLogger
       $stderr.puts "Writing #{@logged_messages.size} messages to #{logfile}."
       log_messages
       @last_logtime = Time.now
-      @logged_messages.clear
     end
   end
 
