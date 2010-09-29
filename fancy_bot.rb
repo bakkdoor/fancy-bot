@@ -26,7 +26,7 @@ class FancyLogger
   end
 
   def logfile
-    "#{LOGDIR}/#fancy_#{Date.today}.log"
+    "#{LOGDIR}/#fancy_#{Date.today}.txt"
   end
 
   def log_messages
