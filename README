@@ -1,4 +1,4 @@
-This is a simple IRC Bot for Fancy's irc channel (#freenode @
+This is a simple IRC Bot for Fancy's irc channel (#fancy @
 irc.freenode.net) written in Ruby using Cinch.
 
 Copyright (C) 2010 Christopher Bertels <chris@fancy-lang.org>
