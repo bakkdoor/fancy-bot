@@ -90,15 +90,17 @@ bot = Cinch::Bot.new do
       return true
     end
 
+    def non_error_line?(line)
+      line =~ /make(.+)?:/ ||
+      line =~ /warning|warnung|In function/i ||
+      line =~ /fancy.y: (konflikte|conflicts):/i
+    end
+
     # sends error messages to channel, ignoring any warnings etc that
     # aren't real error messages
     def send_errors(m, errors, cmd)
       # ignore warnings and make output lines
-      errors.reject! do |e|
-        e =~ /make(.+)?:/ ||
-        e =~ /warning|warnung|In function/i ||
-        e =~ /fancy.y: Konflikte:/
-      end
+      errors.reject!{|e| non_error_line?(e) }
 
       size = errors.size
       if size > 5
@@ -132,11 +134,29 @@ bot = Cinch::Bot.new do
       end
     end
 
+    def do_make(m)
+      make_log_file = "/tmp/make_output.log"
+      system("cd #{FANCY_DIR} && make 2> #{make_log_file}")
+      lines =[]
+      File.open(make_log_file, "r") do |f|
+        lines = f.readlines
+      end
+      err_lines = lines.reject{|l| non_error_line?(l) }
+      if err_lines.size > 0
+	m.reply "Got #{err_lines.size} errors while compiling:"
+	err_lines.each do |l|
+	  m.reply l
+	end
+	yield if block_given?
+      end
+    end
+
     # try to build fancy source
     def try_build(m)
       do_cmd(m, "./configure"){ return false }
       do_cmd(m, "make clean"){ return false }
-      do_cmd(m, "make"){ return false }
+      # do_cmd(m, "make"){ return false }
+      do_make(m){ return false }
       return true
     end
 
