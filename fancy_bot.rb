@@ -17,11 +17,13 @@ class FancyLogger
 
   listen_to :channel, :join, :me, :part, :quit, {:use_prefix => false}
 
-  def log_message(logfile, msg)
+  def log_message(logfile, time_and_msg)
+    time = time_and_msg[0]
+    msg = time_and_msg[1]
     if msg.user.nick
-      logfile.puts "[#{Time.now}] #{msg.user.nick}: #{msg.message}"
+      logfile.puts "[#{time}] #{msg.user.nick}: #{msg.message}"
     else
-      logfile.puts "[#{Time.now}]: #{msg.message}"
+      logfile.puts "[#{time}]: #{msg.message}"
     end
   end
 
@@ -43,7 +45,7 @@ class FancyLogger
   def listen(m)
     @last_logtime ||= Time.now
     @logged_messages ||= []
-    @logged_messages << m
+    @logged_messages << [Time.now, m]
 
     # every 60 seconds
     if (Time.now - @last_logtime) > 60
