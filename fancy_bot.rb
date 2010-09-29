@@ -135,8 +135,8 @@ bot = Cinch::Bot.new do
     end
 
     def do_make(m)
-      make_log_file = "/tmp/make_output.log"
-      system("cd #{FANCY_DIR} && make 2> #{make_log_file}")
+      make_log_file = "/tmp/make_err_output.log"
+      system("cd #{FANCY_DIR} && make > /tmp/make_stdout_output.log 2> #{make_log_file}")
       lines =[]
       File.open(make_log_file, "r") do |f|
         lines = f.readlines
