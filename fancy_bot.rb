@@ -107,7 +107,13 @@ bot = Cinch::Bot.new do
       return true
     end
 
-    def send_build_errors(m, errors)
+    def send_errors(m, errors)
+      size = errors.size
+      if size > 5
+        errors = errors[0..4]
+        errors << "[...] (#{size - 5} more error lines were omitted)"
+      end
+
       errors.each do |l|
         # ignore warnings and make output lines
         if l !~ /make(.+)?:/ && l !~ /warning|warnung/i
@@ -118,16 +124,18 @@ bot = Cinch::Bot.new do
 
     # try to build fancy source
     def try_build(m)
+      Open3.popen3("cd #{FANCY_DIR} && ./configure") do |stdin, stdout, stderr|
+        errors = stderr.readlines
+        if errors.size > 0
+          m.reply "Got errors during ./configure:"
+          send_errors(m, errors)
+      end
+
       Open3.popen3("cd #{FANCY_DIR} && ./configure && make") do |stdin, stdout, stderr|
         err_lines = stderr.readlines
         if err_lines.size > 0
           m.reply "Got build errors:"
-          if err_lines.size > 5
-            send_build_errors m, err_lines[0..4]
-            m.reply "[...] (#{err_lines.size - 5} more error lines were omitted)"
-          else
-            send_build_errors m, err_lines
-          end
+          send_errors(m, err_lines)
           return false # done since error
         end
       end
