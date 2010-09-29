@@ -129,6 +129,7 @@ bot = Cinch::Bot.new do
         if errors.size > 0
           m.reply "Got errors during ./configure:"
           send_errors(m, errors)
+        end
       end
 
       Open3.popen3("cd #{FANCY_DIR} && ./configure && make") do |stdin, stdout, stderr|
