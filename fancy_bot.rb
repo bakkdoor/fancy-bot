@@ -107,39 +107,53 @@ bot = Cinch::Bot.new do
       return true
     end
 
-    def send_errors(m, errors)
+    # sends error messages to channel, ignoring any warnings etc that
+    # aren't real error messages
+    def send_errors(m, errors, cmd)
+      # ignore warnings and make output lines
+      errors.reject! do |e|
+        e =~ /make(.+)?:/ ||
+        e =~ /warning|warnung|In function/i ||
+        e =~ /fancy.y: Konflikte:/
+      end
+
       size = errors.size
       if size > 5
         errors = errors[0..4]
-        errors << "[...] (#{size - 5} more error lines were omitted)"
+      end
+
+      if size > 0
+        m.reply "Got #{size} errors during '#{cmd}':"
       end
 
       errors.each do |l|
-        # ignore warnings and make output lines
-        if l !~ /make(.+)?:/ && l !~ /warning|warnung/i
-          m.reply l.chomp
+        m.reply l.chomp
+      end
+
+      if size > 5
+        m.reply "[...] (#{size - 5} more error lines were omitted)"
+      end
+
+      return size
+    end
+
+    # runs a given comand in FANCY_DIR and outputs any resulting error
+    # messages
+    def do_cmd(m, cmd)
+      Open3.popen3("cd #{FANCY_DIR} && #{cmd}") do |stdin, stdout, stderr|
+        errors = stderr.readlines
+        if errors.size > 0
+          real_errors = send_errors(m, errors, cmd)
+          yield if real_errors > 0
         end
       end
     end
 
     # try to build fancy source
     def try_build(m)
-      Open3.popen3("cd #{FANCY_DIR} && ./configure") do |stdin, stdout, stderr|
-        errors = stderr.readlines
-        if errors.size > 0
-          m.reply "Got errors during ./configure:"
-          send_errors(m, errors)
-        end
-      end
-
-      Open3.popen3("cd #{FANCY_DIR} && make") do |stdin, stdout, stderr|
-        err_lines = stderr.readlines
-        if err_lines.size > 0
-          m.reply "Got build errors:"
-          send_errors(m, err_lines)
-          return false # done since error
-        end
-      end
+      do_cmd(m, "./configure"){ return false }
+      do_cmd(m, "make clean"){ return false }
+      do_cmd(m, "make"){ return false }
       return true
     end
 
@@ -220,7 +234,7 @@ bot = Cinch::Bot.new do
   end
 
   on :message, /^!(info|help)$/ do |m|
-    m.reply "This is FancyBot v0.1 running @ irc.fancy-lang.org"
+    m.reply "This is FancyBot v0.2 running @ irc.fancy-lang.org"
     m.reply "Possible commands are: !seen <nick>, !uptime, !shorten <url> [<urls>], !info, !help, ! <code>"
   end
 
