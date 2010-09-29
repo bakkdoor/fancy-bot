@@ -118,7 +118,7 @@ bot = Cinch::Bot.new do
 
     # try to build fancy source
     def try_build(m)
-      Open3.popen3("cd #{FANCY_DIR} && make") do |stdin, stdout, stderr|
+      Open3.popen3("cd #{FANCY_DIR} && make clean && make") do |stdin, stdout, stderr|
         err_lines = stderr.readlines
         if err_lines.size > 0
           m.reply "Got build errors:"
