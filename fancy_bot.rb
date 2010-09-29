@@ -17,46 +17,27 @@ class FancyLogger
 
   listen_to :channel, :join, :me, :part, :quit, {:use_prefix => false}
 
-  def log_message(logfile, time_and_msg)
-    time = time_and_msg[0]
-    msg = time_and_msg[1]
+  def log_message(msg)
+    time = Time.now
     if msg.user.nick
       logfile.puts "[#{time}] #{msg.user.nick}: #{msg.message}"
     else
       logfile.puts "[#{time}]: #{msg.message}"
     end
+    logfile.flush
   end
 
   def logfile
-    "#{LOGDIR}/#fancy_#{Date.today}.txt"
-  end
-
-  def log_messages
-    if @logged_messages
-      File.open(logfile, "a") do |f|
-        @logged_messages.each do |msg|
-          log_message f, msg
-        end
-        @logged_messages.clear
-      end
-    end
+    @logfile ||= File.open("#{LOGDIR}/#fancy_#{Date.today}.txt", "a")
+    @logfile
   end
 
   def listen(m)
-    @last_logtime ||= Time.now
-    @logged_messages ||= []
-    @logged_messages << [Time.now, m]
-
-    # every 60 seconds
-    if (Time.now - @last_logtime) > 60
-      $stderr.puts "Writing #{@logged_messages.size} messages to #{logfile}."
-      log_messages
-      @last_logtime = Time.now
-    end
+    log_message m
   end
 
   def shutdown
-    log_messages
+    @logfile.close
   end
 end
 
