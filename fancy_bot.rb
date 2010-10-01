@@ -28,7 +28,12 @@ class FancyLogger
   end
 
   def logfile
+    @current_date ||= Date.today
     @logfile ||= File.open("#{LOGDIR}/#fancy_#{Date.today}.txt", "a")
+    if @current_date != Date.today
+      @logfile.close
+      @logfile = File.open("#{LOGDIR}/#fancy_#{Date.today}.txt", "a")
+    end
     @logfile
   end
 
