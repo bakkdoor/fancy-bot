@@ -15,7 +15,7 @@ end
 class FancyLogger
   include Cinch::Plugin
 
-  listen_to :channel, :join, :me, :part, :quit, {:use_prefix => false}
+  listen_to :channel, :me, {:use_prefix => false}
 
   def log_message(msg)
     time = Time.now
