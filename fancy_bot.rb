@@ -263,7 +263,7 @@ bot = Cinch::Bot.new do
     end
   end
 
-  on :message, /^fancy:/ do |m|
+  on :message, /^fancy:(.+)http/ do |m|
     if m.user.nick == "fancy_gh"
       do_update_build_test m
     end
