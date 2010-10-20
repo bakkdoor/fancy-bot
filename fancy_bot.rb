@@ -104,7 +104,7 @@ bot = Cinch::Bot.new do
     # sends error messages to channel, ignoring any warnings etc that
     # aren't real error messages
     def send_errors(m, errors, cmd)
-      # ignore warnings and make output lines
+      # ignore warnings and rake output lines
       errors.reject!{|e| non_error_line?(e) }
 
       size = errors.size
@@ -139,11 +139,11 @@ bot = Cinch::Bot.new do
       end
     end
 
-    def do_make(m)
-      make_log_file = "/tmp/make_err_output.log"
-      system("cd #{FANCY_DIR} && make > /tmp/make_stdout_output.log 2> #{make_log_file}")
+    def do_rake(m)
+      rake_log_file = "/tmp/rake_err_output.log"
+      system("cd #{FANCY_DIR} && rake > /tmp/rake_stdout_output.log 2> #{rake_log_file}")
       lines =[]
-      File.open(make_log_file, "r") do |f|
+      File.open(rake_log_file, "r") do |f|
         lines = f.readlines
       end
       err_lines = lines.reject{|l| non_error_line?(l) }
@@ -158,16 +158,14 @@ bot = Cinch::Bot.new do
 
     # try to build fancy source
     def try_build(m)
-      do_cmd(m, "./configure"){ return false }
-      do_cmd(m, "make clean"){ return false }
-      # do_cmd(m, "make"){ return false }
-      do_make(m){ return false }
+      do_cmd(m, "rake clean"){ return false }
+      do_rake(m){ return false }
       return true
     end
 
     # try to run FancySpecs
     def run_tests(m)
-      IO.popen("cd #{FANCY_DIR} && make test", "r") do |o|
+      IO.popen("cd #{FANCY_DIR} && rake test", "r") do |o|
         lines = o.readlines
         failed = lines.select{|l| l =~ /FAILED:/}
         failed.each do |failed|
@@ -181,7 +179,7 @@ bot = Cinch::Bot.new do
       m.reply "Getting latest changes & trying to run tests."
       return unless fetch_latest_revision m
       return unless try_build m
-      run_tests m
+      # run_tests m
     end
   end
 
