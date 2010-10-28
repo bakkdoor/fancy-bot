@@ -248,9 +248,7 @@ bot = Cinch::Bot.new do
     begin
       Timeout::timeout(5) do
 
-        disable = ["Kernel", "Errno", "File::Constants", "File::Stat", "File",
-                   "Directory", "System", "Dir", "IO", "Thread", "GC", "Module",
-                   "ObjectSpace", "Process", "SystemExit"]
+        disable = ["Kernel", "File", "Directory", "System", "Dir", "IO"]
 
         disable_str = disable.map{|o| "#{o} = nil; "}.join
 
