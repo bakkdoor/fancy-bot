@@ -247,8 +247,13 @@ bot = Cinch::Bot.new do
   on :message, /^! (.+)$/ do |m, cmd|
     begin
       Timeout::timeout(5) do
-        disable = ["Kernel", "File", "Directory", "System", "Dir", "IO"]
+
+        disable = ["Kernel", "Errno", "File::Constants", "File::Stat", "File",
+                   "Directory", "System", "Dir", "IO", "Thread", "GC", "Module",
+                   "ObjectSpace", "Process", "SystemExit"]
+
         disable_str = disable.map{|o| "#{o} = nil; "}.join
+
         IO.popen("#{FANCY_CMD} -e \"#{disable_str} #{cmd.gsub(/\"/, "\\\"")}\"", "r") do |o|
           lines = o.readlines
           if lines.size <= 5
