@@ -3,6 +3,8 @@ require 'cinch'
 require "date"
 require "timeout"
 require "open3"
+require "net/http"
+require "uri"
 
 FANCY_DIR = ARGV[0]
 FANCY_CMD = "#{FANCY_DIR}/bin/fancy -I #{FANCY_DIR}"
@@ -59,8 +61,8 @@ end
 bot = Cinch::Bot.new do
   configure do |c|
     c.server   = "irc.freenode.org"
-    c.channels = ["#fancy"]
-    c.nick = "fancy_bot"
+    c.channels = ["#fancy_test"]
+    c.nick = "fancy_bot_tmp"
     c.plugins.plugins = [FancyLogger]
 
     @seen_users = {}
@@ -73,6 +75,23 @@ bot = Cinch::Bot.new do
       url == "Error" ? nil : url
     rescue OpenURI::HTTPError
       nil
+    end
+
+    def get_revision
+      `cd #{FANCY_DIR} && git show master`.split[1]
+    end
+
+    # paste some text to gist.github.com
+    def paste_text(text, title = "rake test")
+      uri = URI.parse('http://gist.github.com/api/v1/xml/new')
+      req = Net::HTTP::Post.new(uri.path)
+      req.set_form_data({ "files[Fancy: #{title} @ #{get_revision}]" => text })
+      res = Net::HTTP.new(uri.host, uri.port).start {|http| http.request(req) }
+      if(res.code == '200')
+        'http://gist.github.com/' + res.body.match(/repo>(\d+)</)[1]
+      else
+        false
+      end
     end
 
     # fetch latest revision from github
@@ -98,7 +117,13 @@ bot = Cinch::Bot.new do
     def non_error_line?(line)
       line =~ /make(.+)?:/ ||
       line =~ /warning|warnung|In function/i ||
-      line =~ /fancy.y: (konflikte|conflicts):/i
+      line =~ /parser.(y|c): (konflikte|conflicts):/i ||
+      line =~ /lexer.(lex|c):/i ||
+      line =~ /^rm -f/ ||
+      line =~ /^make -C/ ||
+      line =~ /^rbx/ ||
+      line =~ /^flex/ ||
+      line =~ /^bison/
     end
 
     # sends error messages to channel, ignoring any warnings etc that
@@ -106,22 +131,11 @@ bot = Cinch::Bot.new do
     def send_errors(m, errors, cmd)
       # ignore warnings and rake output lines
       errors.reject!{|e| non_error_line?(e) }
-
       size = errors.size
-      if size > 5
-        errors = errors[0..4]
-      end
 
       if size > 0
-        m.reply "Got #{size} errors during '#{cmd}':"
-      end
-
-      errors.each do |l|
-        m.reply l.chomp
-      end
-
-      if size > 5
-        m.reply "[...] (#{size - 5} more error lines were omitted)"
+        gist_url = paste_text(errors.join, cmd)
+        m.reply "Got #{size} errors during '#{cmd}'. See: #{gist_url}"
       end
 
       return size
@@ -148,10 +162,8 @@ bot = Cinch::Bot.new do
       end
       err_lines = lines.reject{|l| non_error_line?(l) }
       if err_lines.size > 0
-	m.reply "Got #{err_lines.size} errors while compiling:"
-	err_lines.each do |l|
-	  m.reply l
-	end
+        gist_url = paste_text(err_lines.join, "rake")
+        m.reply "Got #{err_lines.size} errors while compiling. See: #{gist_url}"
 	yield if block_given?
       end
     end
@@ -168,10 +180,12 @@ bot = Cinch::Bot.new do
       IO.popen("cd #{FANCY_DIR} && rake test", "r") do |o|
         lines = o.readlines
         failed = lines.select{|l| l =~ /FAILED:/}
-        failed.each do |failed|
-          m.reply failed.chomp
+        amount = failed.size
+        if amount > 0
+          failed << "=> #{amount} failed tests!"
+          gist_url = paste_text(failed.join, "rake test")
         end
-        m.reply "=> #{failed.size} failed tests!"
+        m.reply "=> #{amount} failed tests! See: #{gist_url}"
       end
     end
 
@@ -179,7 +193,7 @@ bot = Cinch::Bot.new do
       m.reply "Getting latest changes & trying to run tests."
       return unless fetch_latest_revision m
       return unless try_build m
-      # run_tests m
+      run_tests m
     end
   end
 
@@ -268,7 +282,7 @@ bot = Cinch::Bot.new do
 
   on :message, /^fancy:(.+)http/ do |m|
     if m.user.nick == "fancy_gh"
-      # do_update_build_test m
+      do_update_build_test m
     end
   end
 end
