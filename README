@@ -1,12 +1,1 @@
-This is a simple IRC Bot for Fancy's irc channel (#fancy @
-irc.freenode.net) written in Ruby using Cinch.
-
-Copyright (C) 2010 Christopher Bertels <chris@fancy-lang.org>
-
-You can check out Cinch here: http://github.com/injekt/cinch
-
-More information on Fancy: http://www.fancy-lang.org
-or on GitHub: http://github.com/bakkdoor/fancy
-
-The source code is licensed under a BSD license.
-See the LICENSE file for more information.
+Moved to https://github.com/fancy-lang/fancy-bot
